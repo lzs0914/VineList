@@ -81,8 +81,7 @@ function push() {
 
 /* ---------- demo seed ---------- */
 
-function seedIfEmpty() {
-  if (state.items.length) return;
+function buildSeedItems() {
   const now = Date.now();
   const notes = [
     '周一 10:00 产品评审\n- 藤蔓默认收起\n- 快捷键必须能改',
@@ -90,8 +89,9 @@ function seedIfEmpty() {
     '下午 4 点和设计过一遍\n葫芦的 hover 态',
     '本周只做两件事\n藤条 + 摘取，不做归档',
   ];
+  const items = [];
   notes.forEach((text, i) => {
-    state.items.push({
+    items.push({
       id: uid(), type: 'note', text, t: now - (notes.length - i) * 600000, state: 'hang',
     });
   });
@@ -104,14 +104,28 @@ function seedIfEmpty() {
     fs.copyFileSync(p, path.join(shotsDir(), id + '.png'));
     const img = nativeImage.createFromPath(p);
     const sz = img.getSize();
-    state.items.push({
+    items.push({
       id, type: 'shot', src: 'vine://shot/' + id + '.png',
       thumb: 'data:image/jpeg;base64,' + img.resize({ width: 220 }).toJPEG(74).toString('base64'),
       w: sz.width, h: sz.height, t: now - (3 - i) * 3600000, state: 'hang',
     });
   });
-  state.items.sort((a, b) => b.t - a.t);
+  items.sort((a, b) => b.t - a.t);
+  return items;
+}
+
+function seedIfEmpty() {
+  if (state.items.length) return;
+  state.items = buildSeedItems();
   save();
+}
+
+/* 恢复示例：清空当前藤条，重新放回 4 张便签 + 3 张截图 */
+function reseed() {
+  state.items = buildSeedItems();
+  state.date = dayKey();
+  save(); push();
+  if (vineWin && !vineWin.isDestroyed()) flashVine();
 }
 
 /* ---------- vine window ---------- */
@@ -506,6 +520,7 @@ function buildTray() {
       state.items.forEach((i) => { if (i.state === 'hang') i.state = 'done'; });
       save(); push();
     } },
+    { label: '恢复示例节点（重置藤条）', click: () => reseed() },
     { type: 'separator' },
     { label: '退出', click: () => app.quit() },
   ]);
