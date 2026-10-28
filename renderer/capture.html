@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; cursor: crosshair;
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; -webkit-user-select: none; user-select: none; }
+  #bg { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: block; }
+  #dim { position: fixed; inset: 0; background: rgba(0,0,0,.34); }
+  #sel { position: fixed; display: none; border: 1.5px solid #79e2a6;
+    box-shadow: 0 0 0 100vmax rgba(0,0,0,.46), 0 0 18px rgba(121,226,166,.55);
+    background: transparent; }
+  #size { position: fixed; display: none; padding: 3px 8px; border-radius: 6px;
+    background: #2f6b47; color: #eaffef; font-size: 11px; letter-spacing: .5px; white-space: nowrap; }
+  #tip { position: fixed; left: 50%; top: 28px; transform: translateX(-50%);
+    padding: 7px 16px; border-radius: 20px; background: rgba(20,30,25,.72); color: #d8f3e2;
+    font-size: 12px; letter-spacing: .6px; }
+</style>
+</head>
+<body>
+<img id="bg">
+<div id="dim"></div>
+<div id="sel"></div>
+<div id="size"></div>
+<div id="tip">拖拽框选要挂到藤上的区域　·　Esc 取消</div>
+<canvas id="cv" style="display:none"></canvas>
+<script>
+  const bg = document.getElementById('bg');
+  const dim = document.getElementById('dim');
+  const sel = document.getElementById('sel');
+  const sizeEl = document.getElementById('size');
+  const tip = document.getElementById('tip');
+  const cv = document.getElementById('cv');
+
+  let down = null, rect = null, ready = false;
+
+  window.api.onCaptureImage((dataUrl) => {
+    bg.src = dataUrl;
+    ready = true;
+    tip.style.opacity = '0';
+    tip.style.transition = 'opacity .4s';
+  });
+
+  function setRect(r) {
+    rect = r;
+    if (!r || r.w < 1 || r.h < 1) { sel.style.display = 'none'; sizeEl.style.display = 'none'; return; }
+    sel.style.display = 'block';
+    sel.style.left = r.x + 'px';
+    sel.style.top = r.y + 'px';
+    sel.style.width = r.w + 'px';
+    sel.style.height = r.h + 'px';
+    sizeEl.style.display = 'block';
+    sizeEl.textContent = Math.round(r.w) + ' × ' + Math.round(r.h);
+    sizeEl.style.left = r.x + 'px';
+    sizeEl.style.top = Math.max(4, r.y - 26) + 'px';
+  }
+
+  window.addEventListener('pointerdown', (e) => {
+    if (!ready) return;
+    down = { x: e.clientX, y: e.clientY };
+    dim.style.display = 'none';
+    setRect({ x: down.x, y: down.y, w: 0, h: 0 });
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const x = Math.min(down.x, e.clientX), y = Math.min(down.y, e.clientY);
+    setRect({ x, y, w: Math.abs(e.clientX - down.x), h: Math.abs(e.clientY - down.y) });
+  });
+
+  window.addEventListener('pointerup', (e) => {
+    if (!down) return;
+    const d = down; down = null;
+    const x = Math.min(d.x, e.clientX), y = Math.min(d.y, e.clientY);
+    const w = Math.abs(e.clientX - d.x), h = Math.abs(e.clientY - d.y);
+    if (w < 8 || h < 8) { reset(); return; }
+
+    const nw = bg.naturalWidth || window.innerWidth;
+    const nh = bg.naturalHeight || window.innerHeight;
+    const sx = nw / window.innerWidth;
+    const sy = nh / window.innerHeight;
+    cv.width = Math.round(w * sx);
+    cv.height = Math.round(h * sy);
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(bg, x * sx, y * sy, w * sx, h * sy, 0, 0, cv.width, cv.height);
+    const dataUrl = cv.toDataURL('image/png');
+    window.api.captureDone({ dataUrl, w: cv.width, h: cv.height });
+  });
+
+  function reset() {
+    setRect(null);
+    dim.style.display = 'block';
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') window.api.captureCancel();
+  });
+  window.addEventListener('contextmenu', (e) => { e.preventDefault(); window.api.captureCancel(); });
+  document.body.addEventListener('pointerdown', (e) => { if (e.button === 2) window.api.captureCancel(); });
+</script>
+</body>
+</html>

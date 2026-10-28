@@ -1,0 +1,17 @@
+# 依赖（体积大，用 npm install 还原）
+node_modules/
+
+# 个人自用待办，不入库
+待办.txt
+
+# 运行 / 打包产物
+dist/
+out/
+*.log
+
+# 系统与编辑器
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/
+*.swp

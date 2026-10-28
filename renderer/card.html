@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: transparent; overflow: hidden;
+    font-family: "Microsoft YaHei UI", "PingFang SC", "Segoe UI", sans-serif; }
+  body { padding: 36px; }
+  .shell {
+    position: relative; width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    border-radius: 14px; overflow: hidden;
+    background: #ffffff;
+    border: 1px solid rgba(255,255,255,.9);
+    box-shadow: 0 16px 36px rgba(8,38,22,.32), 0 2px 8px rgba(8,38,22,.18);
+    transition: opacity .18s ease;
+  }
+  .head {
+    height: 30px; flex: 0 0 30px; display: flex; align-items: center; gap: 8px;
+    padding: 0 8px 0 12px;
+    background: linear-gradient(180deg, #f6fbf7, #edf5ef);
+    border-bottom: 1px solid #e2ece5;
+    -webkit-app-region: drag;
+  }
+  .tag {
+    font-size: 10px; letter-spacing: .8px; color: #3f7f5c;
+    padding: 2px 7px; border-radius: 6px; background: rgba(96,168,124,.16);
+  }
+  .tag.shot { color: #7a6a3a; background: rgba(226,196,120,.22); }
+  .tm { font-size: 10px; color: #9aa9a0; letter-spacing: .5px; }
+  .sp { flex: 1; }
+  button {
+    -webkit-app-region: no-drag;
+    border: 0; background: transparent; cursor: pointer;
+    font: 11px/1 "Microsoft YaHei UI", sans-serif; color: #5a7064;
+    padding: 5px 7px; border-radius: 6px; letter-spacing: .3px;
+    transition: background .15s, color .15s;
+  }
+  button:hover { background: rgba(80,150,110,.14); color: #2f6b47; }
+  #dk:hover { background: rgba(200,80,80,.14); color: #b04a4a; }
+  .body { flex: 1; overflow: hidden; background: #fff; }
+  .body img { display: block; width: 100%; height: 100%; object-fit: contain; background: #f3f6f4; }
+  .body .paper {
+    width: 100%; height: 100%; padding: 14px 16px; overflow: auto;
+    background: linear-gradient(165deg, #fffaf0 0%, #fdf2d6 55%, #f7e6b8 100%);
+    font-size: 13px; line-height: 1.75; color: #4b4026; letter-spacing: .2px;
+    white-space: pre-wrap; word-break: break-word; -webkit-user-select: text; user-select: text;
+    cursor: text;
+  }
+  #grip { position: fixed; right: 42px; bottom: 42px; width: 16px; height: 16px; cursor: nwse-resize; }
+  #grip::after {
+    content: ''; position: absolute; right: 2px; bottom: 2px; width: 9px; height: 9px;
+    border-right: 2px solid rgba(80,130,100,.55); border-bottom: 2px solid rgba(80,130,100,.55);
+    border-radius: 0 0 3px 0;
+  }
+  #flash {
+    position: fixed; left: 50%; top: 34px; transform: translateX(-50%);
+    padding: 4px 12px; border-radius: 14px; background: rgba(40,80,58,.85); color: #eaffef;
+    font-size: 11px; opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  #flash.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <div class="head">
+    <span class="tag" id="tag">便签</span>
+    <span class="tm" id="tm"></span>
+    <span class="sp"></span>
+    <button id="op" title="透明度">100%</button>
+    <button id="cp" title="复制到剪贴板">复制</button>
+    <button id="bk" title="挂回藤上">↑ 挂回</button>
+    <button id="dk" title="用完了，关掉">×</button>
+  </div>
+  <div class="body" id="body"></div>
+</div>
+<div id="grip"></div>
+<div id="flash"></div>
+<script>
+  const id = new URLSearchParams(location.search).get('id');
+  const shell = document.getElementById('shell');
+  const tagEl = document.getElementById('tag');
+  const tmEl = document.getElementById('tm');
+  const body = document.getElementById('body');
+  const flash = document.getElementById('flash');
+
+  let flashTimer = null;
+  function say(t) {
+    flash.textContent = t;
+    flash.classList.add('on');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => flash.classList.remove('on'), 1300);
+  }
+
+  window.api.cardGet(id).then((it) => {
+    if (!it) return;
+    if (it.type === 'shot') {
+      tagEl.textContent = '截图';
+      tagEl.classList.add('shot');
+      const img = document.createElement('img');
+      img.src = it.src;
+      img.draggable = false;
+      body.appendChild(img);
+    } else {
+      tagEl.textContent = '便签';
+      const p = document.createElement('div');
+      p.className = 'paper';
+      p.textContent = it.text;
+      body.appendChild(p);
+    }
+    const d = new Date(it.t || Date.now());
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    tmEl.textContent = hh + ':' + mm + ' 挂上';
+  });
+
+  const levels = [1, 0.86, 0.7, 0.55];
+  let li = 0;
+  document.getElementById('op').addEventListener('click', () => {
+    li = (li + 1) % levels.length;
+    const v = levels[li];
+    shell.style.opacity = String(v);
+    document.getElementById('op').textContent = Math.round(v * 100) + '%';
+  });
+
+  document.getElementById('cp').addEventListener('click', async () => {
+    const ok = await window.api.cardCopy(id);
+    say(ok ? '已复制' : '复制失败');
+  });
+  document.getElementById('bk').addEventListener('click', () => window.api.cardReturn(id));
+  document.getElementById('dk').addEventListener('click', () => window.api.cardDone(id));
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') window.api.cardDone(id);
+    if (e.key === 'ArrowUp' && e.altKey) window.api.cardReturn(id);
+  });
+
+  const grip = document.getElementById('grip');
+  let rs = null;
+  grip.addEventListener('pointerdown', (e) => {
+    rs = { x: e.clientX, y: e.clientY, w: window.innerWidth, h: window.innerHeight };
+    grip.setPointerCapture(e.pointerId);
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!rs) return;
+    const w = Math.max(240, rs.w + (e.clientX - rs.x));
+    const h = Math.max(160, rs.h + (e.clientY - rs.y));
+    window.api.cardSize(id, w, h);
+  });
+  grip.addEventListener('pointerup', () => { rs = null; });
+</script>
+</body>
+</html>
