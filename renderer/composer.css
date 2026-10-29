@@ -25,3 +25,5 @@ body { font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; }
   box-shadow: 0 6px 14px rgba(50,120,80,.32);
 }
 #save:hover { filter: brightness(1.06); }
+#note { cursor: text; }
+

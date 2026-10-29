@@ -24,6 +24,7 @@ let state = { date: '', items: [] };
 let interactRects = [];
 let interactLock = false;
 let lastIgnore = null;
+let lastForward = null;
 let lastCursor = { x: -1, y: -1 };
 let pollTimer = null;
 
@@ -159,6 +160,7 @@ function showVine() {
   hidden = false;
   if (!vineWin) return;
   lastIgnore = null;
+  lastForward = null;
   vineWin.showInactive();
   vineWin.setAlwaysOnTop(true, 'floating');
 }
@@ -179,19 +181,30 @@ function pointInRects(lx, ly) {
   return false;
 }
 
+function composerActive() {
+  return !!(composerWin && !composerWin.isDestroyed());
+}
+
+// 便签窗口打开时，藤条窗口保持"完全穿透、不转发鼠标消息"：
+// 两个置顶窗口在屏幕上叠着，转发鼠标消息会让 Windows 在两边反复设置光标，
+// 表现为文本域里光标在箭头和 I 形之间闪烁。
 function applyIgnore(over) {
-  const want = !(over || interactLock);
-  if (want === lastIgnore) return;
+  const comp = composerActive();
+  const want = comp ? true : !(over || interactLock);
+  const fwd = !comp;
+  if (want === lastIgnore && fwd === lastForward) return;
   lastIgnore = want;
-  if (vineWin && !vineWin.isDestroyed()) vineWin.setIgnoreMouseEvents(want, { forward: true });
+  lastForward = fwd;
+  if (vineWin && !vineWin.isDestroyed()) vineWin.setIgnoreMouseEvents(want, { forward: fwd });
 }
 
 function startPointerPoll() {
   if (pollTimer) clearInterval(pollTimer);
   lastIgnore = null;
+  lastForward = null;
   lastCursor = { x: -1, y: -1 };
   pollTimer = setInterval(() => {
-    if (!vineWin || vineWin.isDestroyed() || hidden) return;
+    if (!vineWin || vineWin.isDestroyed() || hidden || composerActive()) return;
     const p = screen.getCursorScreenPoint();
     const b = vineWin.getBounds();
     const lx = p.x - b.x;
@@ -521,13 +534,19 @@ function openComposerWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   composerWin.setAlwaysOnTop(true, 'floating');
+  applyIgnore(false); // 打开便签时立刻让藤条窗口停止转发鼠标，避免光标闪烁
   composerWin.loadFile(path.join(__dirname, 'renderer', 'composer.html'));
   composerWin.once('ready-to-show', () => {
     if (!composerWin || composerWin.isDestroyed()) return;
     composerWin.show();
     composerWin.focus();
   });
-  composerWin.on('closed', () => { composerWin = null; });
+  composerWin.on('closed', () => {
+    composerWin = null;
+    lastIgnore = null;
+    lastForward = null;
+    applyIgnore(false);
+  });
 }
 
 function closeComposerWindow() {
