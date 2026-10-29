@@ -501,8 +501,8 @@ ipcMain.on('composer:close', () => closeComposerWindow());
 
 /* ---------- composer window ---------- */
 
-const COMPOSER_W = 688;
-const COMPOSER_H = 320;
+const COMPOSER_W = 344;
+const COMPOSER_H = 352;
 
 function openComposerWindow() {
   if (composerWin && !composerWin.isDestroyed()) {

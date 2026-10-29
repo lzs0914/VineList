@@ -67,7 +67,7 @@
 main.js              主进程：窗口、托盘、快捷键、截图、数据
 preload.js           IPC 桥
 renderer/vine.*      藤条 + 节点
-renderer/composer.*  新便签卡片（屏幕正中，688×320）
+renderer/composer.*  新便签卡片（屏幕正中，344×352，宽度同旧版、高度翻倍）
 renderer/card.html   摘下来的浮窗
 renderer/capture.*   框选截图
 assets/              图标与示例素材
