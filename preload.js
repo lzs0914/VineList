@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   detach: (id, x, y) => ipcRenderer.invoke('item:detach', id, x, y),
 
   onState: (cb) => ipcRenderer.on('state:changed', (e, s) => cb(s)),
-  onComposer: (cb) => ipcRenderer.on('ui:composer', () => cb()),
+  composerClose: () => ipcRenderer.send('composer:close'),
 
   onCaptureImage: (cb) => ipcRenderer.on('capture:image', (e, d) => cb(d)),
   captureDone: (p) => ipcRenderer.invoke('capture:done', p),

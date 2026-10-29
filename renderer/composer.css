@@ -1,0 +1,27 @@
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+body { font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+#card {
+  position: absolute; inset: 0; box-sizing: border-box;
+  display: flex; flex-direction: column;
+  padding: 14px 16px 12px; border-radius: 18px;
+  background: linear-gradient(165deg, #fffdf4 0%, #fff8e2 70%, #fbefcd 100%);
+  border: 1px solid rgba(255,255,255,.95);
+  box-shadow: 0 30px 60px rgba(14,46,28,.34), 0 2px 8px rgba(14,46,28,.16);
+}
+.c-head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #9b8a5f; letter-spacing: .5px; }
+.c-dot { width: 6px; height: 6px; border-radius: 50%; background: #f0b84a; box-shadow: 0 0 6px rgba(240,184,74,.8); }
+.c-esc { margin-left: auto; font-size: 10px; color: #b3a583; letter-spacing: .2px; }
+#note {
+  flex: 1; margin-top: 10px; border: 0; outline: 0; resize: none; background: transparent;
+  font: 14px/1.7 "Microsoft YaHei UI", "Segoe UI", sans-serif; color: #4b4026; letter-spacing: .2px;
+}
+#note::placeholder { color: #bdb094; }
+.c-foot { display: flex; align-items: center; margin-top: 6px; }
+.c-tip { font-size: 10px; color: #bcae8c; margin-right: auto; }
+#save {
+  border: 0; border-radius: 10px; padding: 7px 16px; cursor: pointer;
+  background: linear-gradient(180deg, #6fb98a, #479a67); color: #fff;
+  font: 12px/1 "Microsoft YaHei UI", sans-serif; letter-spacing: .5px;
+  box-shadow: 0 6px 14px rgba(50,120,80,.32);
+}
+#save:hover { filter: brightness(1.06); }

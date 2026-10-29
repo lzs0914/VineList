@@ -4,9 +4,6 @@ const svgEl = document.getElementById('vine');
 const zone = document.getElementById('zone');
 const layer = document.getElementById('layer');
 const countEl = document.getElementById('count');
-const composer = document.getElementById('composer');
-const ta = document.getElementById('note');
-const saveBtn = document.getElementById('save');
 const toastEl = document.getElementById('toast');
 const hintEl = document.getElementById('hint');
 
@@ -14,7 +11,6 @@ let items = [];
 let S = 1, startX = 0, pitch = 0;
 const nodeMap = new Map();
 let drag = null;
-let composing = false;
 let ghostEl = null;
 let toastTimer = null;
 let firstState = true;
@@ -72,7 +68,7 @@ function drawVine() {
 
 /* ---------------- node ---------------- */
 
-function kindOf(it) { return it.state !== 'hang' ? 'scar' : it.type; }
+function kindOf(it) { return it.type; }
 
 function makeNode(it) {
   const el = document.createElement('div');
@@ -91,10 +87,7 @@ function makeNode(it) {
   card.className = 'card';
 
   const kind = kindOf(it);
-  if (kind === 'scar') {
-    card.classList.add('scar');
-    stem.classList.add('dry');
-  } else if (kind === 'shot') {
+  if (kind === 'shot') {
     card.classList.add('shot');
     const img = document.createElement('img');
     img.src = it.thumb || it.src || '';
@@ -112,21 +105,19 @@ function makeNode(it) {
   el.appendChild(stem);
   el.appendChild(sway);
 
-  if (kind !== 'scar') {
-    const peek = document.createElement('div');
-    peek.className = 'peek';
-    if (kind === 'shot') {
-      const im = document.createElement('img');
-      im.src = it.src || it.thumb || '';
-      peek.appendChild(im);
-    } else {
-      const t = document.createElement('div');
-      t.className = 'peek-txt';
-      t.textContent = it.text || '';
-      peek.appendChild(t);
-    }
-    el.appendChild(peek);
+  const peek = document.createElement('div');
+  peek.className = 'peek';
+  if (kind === 'shot') {
+    const im = document.createElement('img');
+    im.src = it.src || it.thumb || '';
+    peek.appendChild(im);
+  } else {
+    const t = document.createElement('div');
+    t.className = 'peek-txt';
+    t.textContent = it.text || '';
+    peek.appendChild(t);
   }
+  el.appendChild(peek);
 
   el.classList.add('fresh');
   setTimeout(() => el.classList.remove('fresh'), 640);
@@ -204,7 +195,6 @@ function layout() {
   countEl.style.left = Math.round(cntX) + 'px';
   countEl.style.top = Math.round(TOP + CH * S / 2 - 14) + 'px';
 
-  composer.style.left = Math.round(n ? Math.max(24, startX - 6) : W / 2 - 172) + 'px';
   sendRects();
 }
 
@@ -219,7 +209,7 @@ function updateCount() {
 function hitTest(x, y) {
   const el = document.elementFromPoint(x, y);
   if (!el) return false;
-  return !!(el.closest('.node') || el.closest('#composer') || el.closest('#count'));
+  return !!(el.closest('.node') || el.closest('#count'));
 }
 
 let hoverId = null;
@@ -231,7 +221,6 @@ function sendRects() {
     rectTimer = null;
     const rs = [];
     for (const [id, n] of nodeMap) {
-      if (n.kind === 'scar') continue;
       const r = n.el.getBoundingClientRect();
       if (r.width <= 0) continue;
       rs.push({ x: r.left, y: r.top, w: r.width, h: r.height });
@@ -242,10 +231,6 @@ function sendRects() {
           if (pr.height > 0) rs.push({ x: pr.left, y: pr.top, w: pr.width, h: pr.height });
         }
       }
-    }
-    if (composer.classList.contains('open')) {
-      const cr = composer.getBoundingClientRect();
-      rs.push({ x: cr.left, y: cr.top, w: cr.width, h: cr.height });
     }
     if (!countEl.classList.contains('zero')) {
       const br = countEl.getBoundingClientRect();
@@ -263,7 +248,7 @@ function setHover(id) {
 }
 
 window.api.onCursor((p) => {
-  if (drag || composing) return;
+  if (drag) return;
   if (!p.inWin) { setHover(null); return; }
   const el = document.elementFromPoint(p.x, p.y);
   const node = el && el.closest ? el.closest('.node') : null;
@@ -274,7 +259,7 @@ window.api.onCursor((p) => {
 
 window.addEventListener('pointerdown', (e) => {
   const el = e.target.closest && e.target.closest('.node');
-  if (!el || composing || drag) return;
+  if (!el || drag) return;
   const it = items.find((i) => i.id === el.dataset.id);
   if (!it || it.state !== 'hang') return;
 
@@ -360,42 +345,6 @@ function hideGhost() {
   if (ghostEl) { ghostEl.remove(); ghostEl = null; }
 }
 
-/* ---------------- composer ---------------- */
-
-function openComposer() {
-  if (composing) return;
-  composing = true;
-  window.api.setLock(true);
-  ta.value = '';
-  composer.classList.add('open');
-  window.api.focusWindow();
-  setTimeout(() => ta.focus(), 50);
-}
-
-let saving = false;
-function closeComposer(save) {
-  if (!composing || saving) return;
-  saving = true;
-  const v = ta.value.trim();
-  composing = false;
-  composer.classList.remove('open');
-  window.api.setLock(false);
-  ta.blur();
-  if (save && v) {
-    window.api.addNote(v);
-    toast('便签挂上去了');
-  }
-  sendRects();
-  setTimeout(() => { saving = false; }, 80);
-}
-
-ta.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { e.preventDefault(); closeComposer(true); }
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); closeComposer(true); }
-});
-ta.addEventListener('blur', () => { if (composing) closeComposer(true); });
-saveBtn.addEventListener('mousedown', (e) => { e.preventDefault(); closeComposer(true); });
-
 /* ---------------- toast ---------------- */
 
 function toast(msg) {
@@ -408,7 +357,8 @@ function toast(msg) {
 /* ---------------- boot ---------------- */
 
 function setState(s) {
-  items = (s && s.items) || [];
+  // 只展示还在藤上的（hang）；已完成的 done 和摘出去没挂回的 out 都不占位
+  items = ((s && s.items) || []).filter((i) => i.state === 'hang');
   render();
   if (firstState) {
     firstState = false;
@@ -418,7 +368,6 @@ function setState(s) {
 }
 
 window.api.onState(setState);
-window.api.onComposer(() => openComposer());
 window.api.getState().then(setState);
 window.addEventListener('resize', () => { drawVine(); layout(); });
 

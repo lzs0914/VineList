@@ -11,6 +11,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const uid = () => crypto.randomBytes(6).toString('hex');
 let vineWin = null;
 let captureWin = null;
+let composerWin = null;
 let tray = null;
 let hidden = false;
 let captureWasHidden = false;
@@ -405,6 +406,7 @@ ipcMain.handle('note:add', (e, text) => {
   if (!t) return false;
   state.items.unshift({ id: uid(), type: 'note', text: t, t: Date.now(), state: 'hang' });
   save(); push();
+  showVine();
   return true;
 });
 
@@ -493,12 +495,46 @@ ipcMain.handle('card:copy', (e, id) => {
   return true;
 });
 
-ipcMain.on('debug:open-composer', () => {
-  if (vineWin && !vineWin.isDestroyed()) {
-    vineWin.show(); vineWin.focus();
-    vineWin.webContents.send('ui:composer');
+ipcMain.on('debug:open-composer', () => openComposerWindow());
+
+ipcMain.on('composer:close', () => closeComposerWindow());
+
+/* ---------- composer window ---------- */
+
+const COMPOSER_W = 688;
+const COMPOSER_H = 320;
+
+function openComposerWindow() {
+  if (composerWin && !composerWin.isDestroyed()) {
+    composerWin.show();
+    composerWin.focus();
+    return;
   }
-});
+  const a = screen.getPrimaryDisplay().workArea;
+  const x = Math.round(a.x + (a.width - COMPOSER_W) / 2);
+  const y = Math.round(a.y + (a.height - COMPOSER_H) / 2);
+  composerWin = new BrowserWindow({
+    x, y, width: COMPOSER_W, height: COMPOSER_H,
+    frame: false, transparent: true, backgroundColor: '#00000000',
+    resizable: false, minimizable: false, maximizable: false, skipTaskbar: true,
+    alwaysOnTop: true, hasShadow: false, fullscreenable: false,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
+  });
+  composerWin.setAlwaysOnTop(true, 'floating');
+  composerWin.loadFile(path.join(__dirname, 'renderer', 'composer.html'));
+  composerWin.once('ready-to-show', () => {
+    if (!composerWin || composerWin.isDestroyed()) return;
+    composerWin.show();
+    composerWin.focus();
+  });
+  composerWin.on('closed', () => { composerWin = null; });
+}
+
+function closeComposerWindow() {
+  const w = composerWin;
+  if (!w || w.isDestroyed()) return;
+  setTimeout(() => { if (w && !w.isDestroyed()) w.close(); }, 40);
+}
 
 /* ---------- tray ---------- */
 
@@ -513,7 +549,7 @@ function buildTray() {
     { type: 'separator' },
     { label: '截一张图', accelerator: 'Ctrl+Shift+A', click: () => startCapture() },
     { label: '写个便签', accelerator: 'Ctrl+Shift+N', click: () => {
-      if (vineWin) { vineWin.show(); vineWin.focus(); vineWin.webContents.send('ui:composer'); }
+      openComposerWindow();
     } },
     { type: 'separator' },
     { label: '全部完成（收藤）', click: () => {
@@ -545,7 +581,7 @@ app.whenReady().then(() => {
 
   globalShortcut.register('Control+Shift+A', () => startCapture());
   globalShortcut.register('Control+Shift+N', () => {
-    if (vineWin) { vineWin.show(); vineWin.focus(); vineWin.webContents.send('ui:composer'); }
+    openComposerWindow();
   });
   globalShortcut.register('Control+Shift+Q', () => toggleVine());
 });
