@@ -3,27 +3,49 @@ body { font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; }
 #card {
   position: absolute; inset: 0; box-sizing: border-box;
   display: flex; flex-direction: column;
-  padding: 14px 16px 12px; border-radius: 18px;
+  padding: 12px 14px 10px; border-radius: 16px;
   background: linear-gradient(165deg, #fffdf4 0%, #fff8e2 70%, #fbefcd 100%);
   border: 1px solid rgba(255,255,255,.95);
-  box-shadow: 0 30px 60px rgba(14,46,28,.34), 0 2px 8px rgba(14,46,28,.16);
+  box-shadow: 0 26px 56px rgba(14,46,28,.34), 0 2px 8px rgba(14,46,28,.16);
+  -webkit-app-region: drag;
 }
-.c-head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #9b8a5f; letter-spacing: .5px; }
+.c-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: #9b8a5f; letter-spacing: .5px;
+  -webkit-app-region: drag;
+}
 .c-dot { width: 6px; height: 6px; border-radius: 50%; background: #f0b84a; box-shadow: 0 0 6px rgba(240,184,74,.8); }
-.c-esc { margin-left: auto; font-size: 10px; color: #b3a583; letter-spacing: .2px; }
+.c-actions { margin-left: auto; display: flex; gap: 6px; -webkit-app-region: no-drag; }
+.c-actions button {
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px; -webkit-app-region: no-drag;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(155,138,95,.14); color: #8d7c52;
+  font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif; cursor: pointer;
+}
+#min:hover { background: rgba(155,138,95,.28); }
+#close:hover { background: #e2685c; color: #fff; }
 #note {
-  flex: 1; margin-top: 10px; border: 0; outline: 0; resize: none; background: transparent;
-  font: 14px/1.7 "Microsoft YaHei UI", "Segoe UI", sans-serif; color: #4b4026; letter-spacing: .2px;
+  flex: 1; min-height: 0; margin-top: 8px; border: 0; outline: 0; resize: none;
+  background: transparent; cursor: text; -webkit-app-region: no-drag;
+  font: 14px/1.7 "Microsoft YaHei UI", "Segoe UI", sans-serif;
+  color: #4b4026; letter-spacing: .2px;
 }
 #note::placeholder { color: #bdb094; }
-.c-foot { display: flex; align-items: center; margin-top: 6px; }
-.c-tip { font-size: 10px; color: #bcae8c; margin-right: auto; }
+.c-foot { display: flex; justify-content: flex-end; margin-top: 8px; -webkit-app-region: no-drag; }
 #save {
-  border: 0; border-radius: 10px; padding: 7px 16px; cursor: pointer;
+  border: 0; border-radius: 10px; padding: 7px 16px; cursor: pointer; -webkit-app-region: no-drag;
   background: linear-gradient(180deg, #6fb98a, #479a67); color: #fff;
   font: 12px/1 "Microsoft YaHei UI", sans-serif; letter-spacing: .5px;
   box-shadow: 0 6px 14px rgba(50,120,80,.32);
 }
 #save:hover { filter: brightness(1.06); }
-#note { cursor: text; }
-
+.rz { position: absolute; z-index: 5; -webkit-app-region: no-drag; }
+.rz-n { top: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.rz-s { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.rz-w { left: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.rz-e { right: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.rz-nw, .rz-ne, .rz-sw, .rz-se { width: 13px; height: 13px; }
+.rz-nw { left: 0; top: 0; cursor: nwse-resize; }
+.rz-se { right: 0; bottom: 0; cursor: nwse-resize; }
+.rz-ne { right: 0; top: 0; cursor: nesw-resize; }
+.rz-sw { left: 0; bottom: 0; cursor: nesw-resize; }

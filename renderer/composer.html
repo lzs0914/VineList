@@ -7,9 +7,25 @@
 </head>
 <body>
 <div id="card">
-  <div class="c-head"><span class="c-dot"></span>便签<span class="c-esc">Esc 保存 · Ctrl+Enter 保存</span></div>
+  <div class="c-head">
+    <span class="c-dot"></span><span class="c-title">便签</span>
+    <div class="c-actions">
+      <button id="min" title="最小化（内容保留，下次打开继续写）">–</button>
+      <button id="close" title="关闭（清空内容）">×</button>
+    </div>
+  </div>
   <textarea id="note" spellcheck="false" placeholder="随手记一句，想起来就摘下来…"></textarea>
-  <div class="c-foot"><span class="c-tip">点击别处会自动保存</span><button id="save">挂到藤上</button></div>
+  <div class="c-foot">
+    <button id="save">挂到藤上</button>
+  </div>
+  <div class="rz rz-n" data-dir="n"></div>
+  <div class="rz rz-s" data-dir="s"></div>
+  <div class="rz rz-w" data-dir="w"></div>
+  <div class="rz rz-e" data-dir="e"></div>
+  <div class="rz rz-nw" data-dir="nw"></div>
+  <div class="rz rz-ne" data-dir="ne"></div>
+  <div class="rz rz-sw" data-dir="sw"></div>
+  <div class="rz rz-se" data-dir="se"></div>
 </div>
 <script src="composer.js"></script>
 </body>

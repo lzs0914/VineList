@@ -182,7 +182,8 @@ function pointInRects(lx, ly) {
 }
 
 function composerActive() {
-  return !!(composerWin && !composerWin.isDestroyed());
+  // 最小化（hide）时不算激活，藤条的 hover / 拖拽要能照常工作
+  return !!(composerWin && !composerWin.isDestroyed() && composerWin.isVisible());
 }
 
 // 便签窗口打开时，藤条窗口保持"完全穿透、不转发鼠标消息"：
@@ -510,36 +511,112 @@ ipcMain.handle('card:copy', (e, id) => {
 
 ipcMain.on('debug:open-composer', () => openComposerWindow());
 
-ipcMain.on('composer:close', () => closeComposerWindow());
+ipcMain.handle('composer:draft:get', () => {
+  if (!composerDraftLoaded) loadDraft();
+  return composerDraft;
+});
+ipcMain.on('composer:draft:set', (e, text) => {
+  composerDraft = String(text == null ? '' : text);
+  writeDraftSoon();
+});
+ipcMain.on('composer:minimize', () => {
+  if (!composerWin || composerWin.isDestroyed()) return;
+  composerWin.hide();
+  lastIgnore = null;
+  lastForward = null;
+  applyIgnore(false);
+});
+ipcMain.on('composer:close', () => {
+  clearDraft();
+  closeComposerWindow();
+});
+ipcMain.on('composer:resize', (e, b) => {
+  if (!composerWin || composerWin.isDestroyed()) return;
+  const x = Math.round(Number((b && b.x) || 0));
+  const y = Math.round(Number((b && b.y) || 0));
+  const w = Math.max(260, Math.round(Number((b && b.w) || 0)));
+  const h = Math.max(200, Math.round(Number((b && b.h) || 0)));
+  composerWin.setBounds({ x, y, width: w, height: h });
+});
 
 /* ---------- composer window ---------- */
 
 const COMPOSER_W = 344;
 const COMPOSER_H = 352;
+let composerBounds = null;      // 上次的窗口位置/大小，重新打开时沿用
+let composerDraft = '';         // 未挂到藤上的草稿（最小化后保留）
+let composerDraftLoaded = false;
+let draftWriteTimer = null;
+
+const draftPath = () => path.join(dataDir(), 'composer-draft.json');
+
+function loadDraft() {
+  composerDraftLoaded = true;
+  try {
+    const d = JSON.parse(fs.readFileSync(draftPath(), 'utf8'));
+    if (d && typeof d.text === 'string') composerDraft = d.text;
+  } catch (e) { /* 还没有草稿 */ }
+}
+
+function writeDraftSoon() {
+  clearTimeout(draftWriteTimer);
+  draftWriteTimer = setTimeout(() => {
+    draftWriteTimer = null;
+    try { fs.writeFileSync(draftPath(), JSON.stringify({ text: composerDraft })); } catch (e) {}
+  }, 300);
+}
+
+function clearDraft() {
+  composerDraft = '';
+  composerDraftLoaded = true;
+  clearTimeout(draftWriteTimer);
+  draftWriteTimer = null;
+  try { fs.rmSync(draftPath(), { force: true }); } catch (e) {}
+}
+
+function centerComposerBounds() {
+  const a = screen.getPrimaryDisplay().workArea;
+  return {
+    x: Math.round(a.x + (a.width - COMPOSER_W) / 2),
+    y: Math.round(a.y + (a.height - COMPOSER_H) / 2),
+    width: COMPOSER_W,
+    height: COMPOSER_H,
+  };
+}
 
 function openComposerWindow() {
   if (composerWin && !composerWin.isDestroyed()) {
     composerWin.show();
     composerWin.focus();
+    applyIgnore(false);
     return;
   }
-  const a = screen.getPrimaryDisplay().workArea;
-  const x = Math.round(a.x + (a.width - COMPOSER_W) / 2);
-  const y = Math.round(a.y + (a.height - COMPOSER_H) / 2);
+  let b = composerBounds || centerComposerBounds();
+  const visible = screen.getAllDisplays().some((d) => {
+    const w = d.workArea;
+    return b.x + 80 > w.x && b.y + 40 > w.y && b.x < w.x + w.width - 80 && b.y < w.y + w.height - 40;
+  });
+  if (!visible) b = centerComposerBounds();
+
   composerWin = new BrowserWindow({
-    x, y, width: COMPOSER_W, height: COMPOSER_H,
+    x: b.x, y: b.y, width: b.width, height: b.height,
+    minWidth: 260, minHeight: 200,
     frame: false, transparent: true, backgroundColor: '#00000000',
-    resizable: false, minimizable: false, maximizable: false, skipTaskbar: true,
+    resizable: false, movable: true, minimizable: false, maximizable: false, skipTaskbar: true,
     alwaysOnTop: true, hasShadow: false, fullscreenable: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
-  composerWin.setAlwaysOnTop(true, 'floating');
+  // 压在所有窗口最前面（含置顶窗口），拖动/缩放交给渲染层自己做，窗口本身保持不可 resize
+  composerWin.setAlwaysOnTop(true, 'screen-saver');
   applyIgnore(false); // 打开便签时立刻让藤条窗口停止转发鼠标，避免光标闪烁
   composerWin.loadFile(path.join(__dirname, 'renderer', 'composer.html'));
   composerWin.once('ready-to-show', () => {
     if (!composerWin || composerWin.isDestroyed()) return;
     composerWin.show();
     composerWin.focus();
+  });
+  composerWin.on('close', () => {
+    if (composerWin && !composerWin.isDestroyed()) composerBounds = composerWin.getBounds();
   });
   composerWin.on('closed', () => {
     composerWin = null;

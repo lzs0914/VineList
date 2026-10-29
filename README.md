@@ -29,7 +29,7 @@
 ## 快捷键
 
 - `Ctrl+Shift+A` 截图（拖拽框选区域，`Esc` 取消）
-- `Ctrl+Shift+N` 写便签（屏幕正中的独立卡片，`Esc` / `Ctrl+Enter` / 点别处保存）
+- `Ctrl+Shift+N` 写便签（置顶卡片，可拖动、拖边缩放；`–` 最小化并保留草稿，`×` 关闭并清空，`Ctrl+Enter` 挂到藤上，`Esc` 等同最小化）
 - `Ctrl+Shift+Q` 显示 / 隐藏藤条
 - `Esc` 取消截图、关闭浮窗
 - 浮窗里 `Alt+↑` 挂回
@@ -67,7 +67,7 @@
 main.js              主进程：窗口、托盘、快捷键、截图、数据
 preload.js           IPC 桥
 renderer/vine.*      藤条 + 节点
-renderer/composer.*  新便签卡片（屏幕正中，344×352，宽度同旧版、高度翻倍）
+renderer/composer.*  新便签卡片（置顶、可拖动缩放，默认 344×352 居中）
 renderer/card.html   摘下来的浮窗
 renderer/capture.*   框选截图
 assets/              图标与示例素材
