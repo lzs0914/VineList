@@ -137,15 +137,18 @@
   });
 
   const grip = document.getElementById('grip');
+  const MIN_CARD_W = 240;
+  const MIN_CARD_H = 160;
   let rs = null;
   grip.addEventListener('pointerdown', (e) => {
-    rs = { x: e.clientX, y: e.clientY, w: window.innerWidth, h: window.innerHeight };
+    const r = shell.getBoundingClientRect();
+    rs = { x: e.clientX, y: e.clientY, w: r.width, h: r.height };
     grip.setPointerCapture(e.pointerId);
   });
   grip.addEventListener('pointermove', (e) => {
     if (!rs) return;
-    const w = Math.max(240, rs.w + (e.clientX - rs.x));
-    const h = Math.max(160, rs.h + (e.clientY - rs.y));
+    const w = Math.max(MIN_CARD_W, rs.w + (e.clientX - rs.x));
+    const h = Math.max(MIN_CARD_H, rs.h + (e.clientY - rs.y));
     window.api.cardSize(id, w, h);
   });
   grip.addEventListener('pointerup', () => { rs = null; });

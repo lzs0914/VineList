@@ -17,6 +17,9 @@ let hidden = false;
 let captureWasHidden = false;
 let peekTimer = null;
 const cards = new Map();
+const CARD_PAD = 36;
+const CARD_MIN_W = 240;
+const CARD_MIN_H = 160;
 const cardSaveTimers = new Map();
 
 let state = { date: '', items: [] };
@@ -360,7 +363,7 @@ function closeCapture() {
 
 function openCard(item, sx, sy) {
   if (cards.has(item.id)) { const w = cards.get(item.id); if (w && !w.isDestroyed()) { w.show(); w.focus(); return; } }
-  const pad = 36, head = 30;
+  const pad = CARD_PAD, head = 30;
   let bodyW, bodyH;
   if (item.type === 'shot') {
     const iw = item.w || 800, ih = item.h || 600;
@@ -375,9 +378,10 @@ function openCard(item, sx, sy) {
   }
   let winW = bodyW + pad * 2;
   let winH = bodyH + head + pad * 2;
-  if (item.type === 'note' && Number(item.cardW) >= 220 && Number(item.cardH) >= 150) {
-    winW = Math.round(Number(item.cardW));
-    winH = Math.round(Number(item.cardH));
+  if (item.type === 'note' && Number(item.cardW) > 0 && Number(item.cardH) > 0) {
+    // cardW/cardH 记录便签可见区域，窗口额外补上 card.html 的透明阴影留白。
+    winW = Math.max(CARD_MIN_W, Math.round(Number(item.cardW))) + pad * 2;
+    winH = Math.max(CARD_MIN_H, Math.round(Number(item.cardH))) + pad * 2;
   }
   const d = screen.getPrimaryDisplay().bounds;
   let x = Math.round((sx == null ? d.x + d.width / 2 : sx) - winW / 2);
@@ -386,7 +390,7 @@ function openCard(item, sx, sy) {
   y = Math.max(d.y + 8, Math.min(y, d.y + d.height - winH - 8));
 
   const win = new BrowserWindow({
-    x, y, width: winW, height: winH, minWidth: 220, minHeight: 150,
+    x, y, width: winW, height: winH, minWidth: CARD_MIN_W + pad * 2, minHeight: CARD_MIN_H + pad * 2,
     frame: false, transparent: true, backgroundColor: '#00000000',
     resizable: true, skipTaskbar: true, alwaysOnTop: true, hasShadow: false,
     fullscreenable: false,
@@ -522,16 +526,16 @@ ipcMain.on('card:done', (e, id) => {
 ipcMain.on('card:size', (e, id, w, h) => {
   const win = cards.get(id);
   if (!win || win.isDestroyed()) return;
-  const width = Math.max(240, Math.round(w));
-  const height = Math.max(160, Math.round(h));
+  const cardW = Math.max(CARD_MIN_W, Math.round(w));
+  const cardH = Math.max(CARD_MIN_H, Math.round(h));
   const b = win.getBounds();
-  win.setBounds({ x: b.x, y: b.y, width, height });
+  win.setBounds({ x: b.x, y: b.y, width: cardW + CARD_PAD * 2, height: cardH + CARD_PAD * 2 });
 
   // 每个便签记住自己最后一次拖出的长宽比和尺寸
   const it = state.items.find((i) => i.id === id);
   if (it && it.type === 'note') {
-    it.cardW = width;
-    it.cardH = height;
+    it.cardW = cardW;
+    it.cardH = cardH;
     clearTimeout(cardSaveTimers.get(id));
     cardSaveTimers.set(id, setTimeout(() => {
       cardSaveTimers.delete(id);
