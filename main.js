@@ -17,6 +17,7 @@ let hidden = false;
 let captureWasHidden = false;
 let peekTimer = null;
 const cards = new Map();
+const cardSaveTimers = new Map();
 
 let state = { date: '', items: [] };
 
@@ -354,8 +355,12 @@ function openCard(item, sx, sy) {
     const lines = txt.split('\n').reduce((a, ln) => a + Math.max(1, Math.ceil(ln.length / 19)), 0);
     bodyH = Math.max(150, Math.min(320, 74 + lines * 22));
   }
-  const winW = bodyW + pad * 2;
-  const winH = bodyH + head + pad * 2;
+  let winW = bodyW + pad * 2;
+  let winH = bodyH + head + pad * 2;
+  if (item.type === 'note' && Number(item.cardW) >= 220 && Number(item.cardH) >= 150) {
+    winW = Math.round(Number(item.cardW));
+    winH = Math.round(Number(item.cardH));
+  }
   const d = screen.getPrimaryDisplay().bounds;
   let x = Math.round((sx == null ? d.x + d.width / 2 : sx) - winW / 2);
   let y = Math.round((sy == null ? d.y + 260 : sy) - 46);
@@ -418,7 +423,12 @@ ipcMain.on('ui:focus', () => {
 ipcMain.handle('note:add', (e, text) => {
   const t = String(text || '').trim();
   if (!t) return false;
-  state.items.unshift({ id: uid(), type: 'note', text: t, t: Date.now(), state: 'hang' });
+  const cb = composerWin && !composerWin.isDestroyed() ? composerWin.getBounds() : null;
+  state.items.unshift({
+    id: uid(), type: 'note', text: t, t: Date.now(), state: 'hang',
+    cardW: cb ? cb.width : undefined,
+    cardH: cb ? cb.height : undefined,
+  });
   save(); push();
   showVine();
   return true;
@@ -493,8 +503,22 @@ ipcMain.on('card:done', (e, id) => {
 ipcMain.on('card:size', (e, id, w, h) => {
   const win = cards.get(id);
   if (!win || win.isDestroyed()) return;
+  const width = Math.max(240, Math.round(w));
+  const height = Math.max(160, Math.round(h));
   const b = win.getBounds();
-  win.setBounds({ x: b.x, y: b.y, width: Math.max(240, Math.round(w)), height: Math.max(160, Math.round(h)) });
+  win.setBounds({ x: b.x, y: b.y, width, height });
+
+  // 每个便签记住自己最后一次拖出的长宽比和尺寸
+  const it = state.items.find((i) => i.id === id);
+  if (it && it.type === 'note') {
+    it.cardW = width;
+    it.cardH = height;
+    clearTimeout(cardSaveTimers.get(id));
+    cardSaveTimers.set(id, setTimeout(() => {
+      cardSaveTimers.delete(id);
+      save();
+    }, 250));
+  }
 });
 
 ipcMain.handle('card:copy', (e, id) => {
@@ -521,6 +545,7 @@ ipcMain.on('composer:draft:set', (e, text) => {
 });
 ipcMain.on('composer:minimize', () => {
   if (!composerWin || composerWin.isDestroyed()) return;
+  rememberComposerBounds();
   composerWin.hide();
   lastIgnore = null;
   lastForward = null;
@@ -537,6 +562,8 @@ ipcMain.on('composer:resize', (e, b) => {
   const w = Math.max(260, Math.round(Number((b && b.w) || 0)));
   const h = Math.max(200, Math.round(Number((b && b.h) || 0)));
   composerWin.setBounds({ x, y, width: w, height: h });
+  composerBounds = { x, y, width: w, height: h };
+  writeComposerViewSoon();
 });
 
 /* ---------- composer window ---------- */
@@ -544,11 +571,41 @@ ipcMain.on('composer:resize', (e, b) => {
 const COMPOSER_W = 344;
 const COMPOSER_H = 352;
 let composerBounds = null;      // 上次的窗口位置/大小，重新打开时沿用
+let composerViewLoaded = false;
+let composerViewWriteTimer = null;
 let composerDraft = '';         // 未挂到藤上的草稿（最小化后保留）
 let composerDraftLoaded = false;
 let draftWriteTimer = null;
 
 const draftPath = () => path.join(dataDir(), 'composer-draft.json');
+const composerViewPath = () => path.join(dataDir(), 'composer-view.json');
+
+function loadComposerView() {
+  if (composerViewLoaded) return;
+  composerViewLoaded = true;
+  try {
+    const d = JSON.parse(fs.readFileSync(composerViewPath(), 'utf8'));
+    const b = d && d.bounds;
+    if (b && [b.x, b.y, b.width, b.height].every(Number.isFinite) && b.width >= 260 && b.height >= 200) {
+      composerBounds = { x: Math.round(b.x), y: Math.round(b.y), width: Math.round(b.width), height: Math.round(b.height) };
+    }
+  } catch (e) { /* 第一次打开还没有记录 */ }
+}
+
+function writeComposerViewSoon() {
+  clearTimeout(composerViewWriteTimer);
+  composerViewWriteTimer = setTimeout(() => {
+    composerViewWriteTimer = null;
+    if (!composerBounds) return;
+    try { fs.writeFileSync(composerViewPath(), JSON.stringify({ bounds: composerBounds })); } catch (e) {}
+  }, 250);
+}
+
+function rememberComposerBounds() {
+  if (!composerWin || composerWin.isDestroyed()) return;
+  composerBounds = composerWin.getBounds();
+  writeComposerViewSoon();
+}
 
 function loadDraft() {
   composerDraftLoaded = true;
@@ -591,6 +648,7 @@ function openComposerWindow() {
     applyIgnore(false);
     return;
   }
+  loadComposerView();
   let b = composerBounds || centerComposerBounds();
   const visible = screen.getAllDisplays().some((d) => {
     const w = d.workArea;
@@ -615,8 +673,13 @@ function openComposerWindow() {
     composerWin.show();
     composerWin.focus();
   });
+  composerWin.on('moved', rememberComposerBounds);
   composerWin.on('close', () => {
-    if (composerWin && !composerWin.isDestroyed()) composerBounds = composerWin.getBounds();
+    if (!composerWin || composerWin.isDestroyed()) return;
+    composerBounds = composerWin.getBounds();
+    clearTimeout(composerViewWriteTimer);
+    composerViewWriteTimer = null;
+    try { fs.writeFileSync(composerViewPath(), JSON.stringify({ bounds: composerBounds })); } catch (e) {}
   });
   composerWin.on('closed', () => {
     composerWin = null;

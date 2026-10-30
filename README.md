@@ -20,7 +20,7 @@
 | 按住节点左右拖 | 调整顺序（最新在最左） |
 | 按住节点往下拖超过约 120px | 摘下来，变成一张置顶浮窗 |
 | 浮窗标题栏拖动 | 移动位置 |
-| 浮窗右下角拖动 | 缩放大小 |
+| 浮窗右下角拖动 | 缩放大小；每个便签会记住自己最后一次的长宽比，下次打开沿用 |
 | 浮窗里 `↑ 挂回` | 放回藤上原位置 |
 | 浮窗里 `×` 或 `Esc` | 当作"用完了" → 关闭，节点从藤上消失，待处理数 -1 |
 
@@ -38,7 +38,8 @@
 
 ## 数据
 
-- 节点：`%APPDATA%\vine-demo\vine-state.json`
+- 节点：`%APPDATA%\vine-demo\vine-state.json`（便签浮窗尺寸也存在这里）
+- 新便签窗口位置/大小：`%APPDATA%\vine-demo\composer-view.json`
 - 截图原图：`%APPDATA%\vine-demo\shots\`
 
 ## 常见问题
@@ -67,7 +68,7 @@
 main.js              主进程：窗口、托盘、快捷键、截图、数据
 preload.js           IPC 桥
 renderer/vine.*      藤条 + 节点
-renderer/composer.*  新便签卡片（置顶、可拖动缩放，默认 344×352 居中）
+renderer/composer.*  新便签卡片（置顶、可拖动缩放，默认 344×352 居中；长宽比跨次保留）
 renderer/card.html   摘下来的浮窗
 renderer/capture.*   框选截图
 assets/              图标与示例素材
