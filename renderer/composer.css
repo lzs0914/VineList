@@ -7,17 +7,16 @@ body { font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; }
   background: linear-gradient(165deg, #fffdf4 0%, #fff8e2 70%, #fbefcd 100%);
   border: 1px solid rgba(255,255,255,.95);
   box-shadow: 0 26px 56px rgba(14,46,28,.34), 0 2px 8px rgba(14,46,28,.16);
-  -webkit-app-region: drag;
 }
 .c-head {
   display: flex; align-items: center; gap: 6px;
   font-size: 11.5px; color: #9b8a5f; letter-spacing: .5px;
-  -webkit-app-region: drag;
+  cursor: move;
 }
 .c-dot { width: 6px; height: 6px; border-radius: 50%; background: #f0b84a; box-shadow: 0 0 6px rgba(240,184,74,.8); }
-.c-actions { margin-left: auto; display: flex; gap: 6px; -webkit-app-region: no-drag; }
+.c-actions { margin-left: auto; display: flex; gap: 6px; }
 .c-actions button {
-  width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px; -webkit-app-region: no-drag;
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(155,138,95,.14); color: #8d7c52;
   font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif; cursor: pointer;
@@ -26,20 +25,20 @@ body { font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; }
 #close:hover { background: #e2685c; color: #fff; }
 #note {
   flex: 1; min-height: 0; margin-top: 8px; border: 0; outline: 0; resize: none;
-  background: transparent; cursor: text; -webkit-app-region: no-drag;
+  background: transparent; cursor: text;
   font: 14px/1.7 "Microsoft YaHei UI", "Segoe UI", sans-serif;
   color: #4b4026; letter-spacing: .2px;
 }
 #note::placeholder { color: #bdb094; }
-.c-foot { display: flex; justify-content: flex-end; margin-top: 8px; -webkit-app-region: no-drag; }
+.c-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
 #save {
-  border: 0; border-radius: 10px; padding: 7px 16px; cursor: pointer; -webkit-app-region: no-drag;
+  border: 0; border-radius: 10px; padding: 7px 16px; cursor: pointer;
   background: linear-gradient(180deg, #6fb98a, #479a67); color: #fff;
   font: 12px/1 "Microsoft YaHei UI", sans-serif; letter-spacing: .5px;
   box-shadow: 0 6px 14px rgba(50,120,80,.32);
 }
 #save:hover { filter: brightness(1.06); }
-.rz { position: absolute; z-index: 5; -webkit-app-region: no-drag; }
+.rz { position: absolute; z-index: 5; }
 .rz-n { top: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
 .rz-s { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
 .rz-w { left: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }

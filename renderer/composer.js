@@ -2,6 +2,7 @@ const ta = document.getElementById('note');
 const saveBtn = document.getElementById('save');
 const minBtn = document.getElementById('min');
 const closeBtn = document.getElementById('close');
+const head = document.querySelector('.c-head');
 
 let saving = false;
 let draftTimer = null;
@@ -66,11 +67,24 @@ closeBtn.addEventListener('click', () => window.api.composerClose());
 window.addEventListener('focus', () => ta.focus());
 window.addEventListener('beforeunload', () => { if (!saving) clearTimeout(draftTimer); });
 
-/* ---------------- 拖边改变大小 ---------------- */
+/* ---------------- 拖标题移动、拖边改变大小 ---------------- */
 
 const MIN_W = 260;
 const MIN_H = 200;
 let rz = null;
+let winMove = null;
+
+head.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.target.closest('.c-actions')) return;
+  e.preventDefault();
+  winMove = {
+    sx: e.screenX,
+    sy: e.screenY,
+    x: window.screenX,
+    y: window.screenY,
+  };
+  try { head.setPointerCapture(e.pointerId); } catch (err) {}
+});
 
 for (const h of document.querySelectorAll('.rz')) {
   h.addEventListener('pointerdown', (e) => {
@@ -91,6 +105,13 @@ for (const h of document.querySelectorAll('.rz')) {
 }
 
 window.addEventListener('pointermove', (e) => {
+  if (winMove) {
+    window.api.composerMove({
+      x: winMove.x + e.screenX - winMove.sx,
+      y: winMove.y + e.screenY - winMove.sy,
+    });
+    return;
+  }
   if (!rz) return;
   const dx = e.screenX - rz.sx;
   const dy = e.screenY - rz.sy;
@@ -107,7 +128,8 @@ window.addEventListener('pointermove', (e) => {
   window.api.composerResize({ x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) });
 });
 
-window.addEventListener('pointerup', () => { rz = null; });
-window.addEventListener('pointercancel', () => { rz = null; });
+window.addEventListener('pointerup', () => { winMove = null; rz = null; });
+window.addEventListener('pointercancel', () => { winMove = null; rz = null; });
+head.addEventListener('lostpointercapture', () => { winMove = null; });
 
 boot();

@@ -574,6 +574,14 @@ ipcMain.on('composer:close', () => {
   clearDraft();
   closeComposerWindow();
 });
+ipcMain.on('composer:move', (e, p) => {
+  if (!composerWin || composerWin.isDestroyed()) return;
+  const x = Math.round(Number(p && p.x));
+  const y = Math.round(Number(p && p.y));
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  composerWin.setPosition(x, y);
+});
+
 ipcMain.on('composer:resize', (e, b) => {
   if (!composerWin || composerWin.isDestroyed()) return;
   const x = Math.round(Number((b && b.x) || 0));

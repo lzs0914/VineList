@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   onState: (cb) => ipcRenderer.on('state:changed', (e, s) => cb(s)),
   composerClose: () => ipcRenderer.send('composer:close'),
   composerMinimize: () => ipcRenderer.send('composer:minimize'),
+  composerMove: (p) => ipcRenderer.send('composer:move', p),
   composerResize: (b) => ipcRenderer.send('composer:resize', b),
   draftGet: () => ipcRenderer.invoke('composer:draft:get'),
   draftSet: (text) => ipcRenderer.send('composer:draft:set', text),
