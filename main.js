@@ -157,6 +157,24 @@ function createVineWindow() {
   vineWin.on('closed', () => { vineWin = null; });
 }
 
+// 摘下节点时，拖拽预览会跟着鼠标跑到屏幕下方。藤条窗口本身只有 VINE_H 高，
+// 若不临时扩展，ghost 会在窗口底边被直接裁掉。拖拽锁是整个节点拖拽期间
+// 唯一的生命周期信号，因此在这里同步扩展 / 恢复透明窗口。
+function setVineDragLayer(active) {
+  if (!vineWin || vineWin.isDestroyed()) return;
+  const b = screen.getPrimaryDisplay().bounds;
+  const next = {
+    x: b.x,
+    y: b.y,
+    width: b.width,
+    height: active ? b.height : Math.min(VINE_H, b.height),
+  };
+  const current = vineWin.getBounds();
+  if (current.x === next.x && current.y === next.y &&
+      current.width === next.width && current.height === next.height) return;
+  vineWin.setBounds(next);
+}
+
 function showVine() {
   hidden = false;
   if (!vineWin) return;
@@ -407,6 +425,7 @@ ipcMain.on('ui:rects', (e, rs) => {
 
 ipcMain.on('ui:lock', (e, v) => {
   interactLock = !!v;
+  setVineDragLayer(interactLock);
   if (interactLock) applyIgnore(true);
   else {
     lastIgnore = null;
